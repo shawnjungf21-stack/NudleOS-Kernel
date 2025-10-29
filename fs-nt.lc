@@ -1,0 +1,27 @@
+filename()
+  file file_contents()
+  if user edit filename()
+    write filename(changes())
+
+    end
+  if user filename() extention edit
+    popup(warning.ui)
+  end
+  if user filename() filename edit
+    if new_filename = existing_filename
+      filename edit rename(file({filename2}))
+    end
+  end
+end
+
+//Filesystem
+if item "user" is created
+  create partition "Filesystem" on disk "{USR_boot}"
+end
+in partition "Filesystem"
+  import hware
+  import osver
+  import user
+  import file
+  makefile (filename"OSDATA")
+end
