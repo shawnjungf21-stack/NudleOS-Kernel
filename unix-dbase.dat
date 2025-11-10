@@ -1,0 +1,5 @@
+datacode {
+
+	readfile filename (sysinfo.lc) + (OS.exe)
+	decompile filename (OS.exe)
+} datacode

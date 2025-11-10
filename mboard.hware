@@ -1,0 +1,53 @@
+// ====================================================================
+// NudleOS Lcode Script: USB.lc (USB)
+// Purpose: Modifies the status/config value for a USB controller (EHCI ID 0x11).
+// Relies on: HDC.lc and RTC.lc
+// ====================================================================
+
+#IMPORT "dll_strap" AS SYS
+#IMPORT "HDC.lc" AS HDC_MODULE
+#IMPORT "RTC.lc" AS RTC_MODULE
+
+#DEFINE DEVICE_ID_USB_EHCI 0x11
+#DEFINE NEW_STATUS_FLAG 0x80000000 // A flag for "High-Speed Mode Enabled"
+
+#STRUCT HW_DEVICE {
+DWORD ID
+DWORD Status
+}
+
+FUNCTION Set_USB_Flag() {
+VAR ConfigPtr = HDC_MODULE.Load_HWARE()
+IF (ConfigPtr < 0) { RETURN -1 }
+
+VAR HWARE_Map = ConfigPtr AS HW_CONFIG*
+VAR DevCount = HWARE_Map.DevCount
+VAR DevPtr = HWARE_Map.DevListPtr
+VAR Found = 0
+
+FOR (VAR i = 0; i < DevCount; i = i + 1) {
+    VAR CurrentDev = DevPtr AS HW_DEVICE*
+
+    IF (CurrentDev.ID == DEVICE_ID_USB_EHCI) {
+        // Write the new status flag directly into memory
+        CurrentDev.Status = CurrentDev.Status | NEW_STATUS_FLAG 
+        Found = 1
+        BREAK
+    }
+    DevPtr = DevPtr + 8
+}
+
+IF (Found == 1) {
+    // Save the modified memory back to disk
+    VAR SaveResult = RTC_MODULE.Save_HWARE(ConfigPtr)
+    SYS.Console.Print("USB EHCI flag set and saved.")
+} ELSE {
+    SYS.Console.Print("USB EHCI controller not found in config.")
+}
+
+SYS.MMU.FreePages(ConfigPtr) // Clean up
+RETURN Found
+
+}
+
+#EXPORT FUNCTION Set_USB_Flag

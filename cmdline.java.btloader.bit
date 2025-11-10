@@ -1,0 +1,77 @@
+// NUDLEOS SYSTEM BIT DEFINITION V1.1
+// File: cmdline.java.btloader.bit
+// Purpose: Define initialization parameters for the NudleShell (CLI) environment.
+// This configuration is loaded by the kernel when @sys.state.boot_mode_id == BOOT_MODE_CLI (0x55).
+
+// =================================================================
+// 1. HEADER AND CONFIGURATION METADATA
+// =================================================================
+
+[CONFIG_BLOCK_START: CMDLINE_INIT]
+    // Unique Configuration ID for integrity check
+    DEFINE_ID      = 0xCF01C5A0;
+
+    // Minimum required Kernel version to execute this configuration
+    REQUIRE_KERNEL = "NudleOS-K1.0.3-REL";
+
+    // Hash of the required dll_user file for verification
+    REQUIRED_DLL_HASH = 0x8A1BCC2F;
+
+[CONFIG_BLOCK_END: CMDLINE_INIT]
+
+// =================================================================
+// 2. SHELL EXECUTION PATH DEFINITION
+// =================================================================
+
+[PROCESS_BLOCK_START: DEFAULT_SHELL]
+    // Defines the primary executable for the console mode.
+    // Must be an lcode compiled binary (.nbin)
+    EXE_PATH       = "/sys/bin/nudle_shell.nbin";
+
+    // Initial Process Priority (0=Highest, 7=Lowest). Pen testing tools need high priority.
+    PRIORITY_LEVEL = 0x02;
+
+    // CPU Affinity Mask (Allows the kernel scheduler to bind this process to specific cores)
+    CPU_AFFINITY_MASK = 0b1111; // Use all available cores initially.
+
+[PROCESS_BLOCK_END: DEFAULT_SHELL]
+
+// =================================================================
+// 3. INITIAL COMMAND EXECUTION
+// =================================================================
+
+[COMMAND_BLOCK_START: PRE_EXECUTE]
+    // The command the NudleShell executes immediately after loading.
+    // In CLI mode, we run a system diagnostics scan before presenting the prompt.
+    EXEC_CMD_1 = "lcode /sys/scripts/diag/pre_boot_security_scan.lc";
+    EXEC_CMD_2 = "load_tool --silent /sys/tools/net/nmap_lite.nbin";
+    EXEC_CMD_3 = "echo 'Welcome to NudleOS Pen Test Environment.'";
+
+    // Set the initial working directory for the user
+    INIT_CWD   = "/usr/tools/";
+
+[COMMAND_BLOCK_END: PRE_EXECUTE]
+
+// =================================================================
+// 4. CORE ENVIRONMENT VARIABLES
+// =================================================================
+
+[ENV_BLOCK_START: ENVIRONMENT_VARS]
+    // PATH variable optimized for security binaries
+    SET_VAR    = "PATH=/bin:/usr/bin:/usr/tools/sec_apps";
+
+    // Default editor variable
+    SET_VAR    = "EDITOR=/bin/vim_lcode.nbin";
+
+    // Kernel-level logging detail (0=none, 5=debug)
+    SET_VAR    = "KERN_LOG_LEVEL=3";
+
+[ENV_BLOCK_END: ENVIRONMENT_VARS]
+
+// =================================================================
+// 5. FOOTER INTEGRITY CHECK
+// =================================================================
+
+FOOTER_SIG_BEGIN  = 0xAABBCCDD;
+FOOTER_CHECKSUM   = 0xEEFF0011;
+FOOTER_SIG_END    = 0xDDCCBBAA;

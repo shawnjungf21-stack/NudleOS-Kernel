@@ -1,0 +1,39 @@
+// ====================================================================
+// NudleOS Lcode Script: ROM.lc (Read-Only Memory/BIOS)
+// Purpose: Validates the integrity signature of the hardware config file.
+// Relies on: dll_strap.FS
+// ====================================================================
+
+#IMPORT "dll_strap" AS SYS
+
+#DEFINE HW_PATH "sys/mboard.hware"
+#DEFINE EXPECTED_SIG 0x45524157 // 'HWARE' ASCII signature
+
+// Function to check the first 4 bytes for the magic number
+FUNCTION Check_Signature() {
+// Allocate a small buffer just for the signature
+VAR SigPtr = SYS.MMU.AllocPages(4)
+IF (SigPtr == 0) { RETURN -1 }
+
+// Read only the first 4 bytes of the file
+VAR ReadResult = SYS.FS.ReadFile(HW_PATH, SigPtr, 4)
+
+VAR Valid = 0
+IF (ReadResult == 4) {
+    // Cast the memory to a DWORD pointer and read the value
+    VAR ActualSig = SigPtr AS DWORD*
+
+    IF (ActualSig.Value == EXPECTED_SIG) {
+        SYS.Console.Print("SUCCESS: Hardware config signature is valid.")
+        Valid = 1
+    } ELSE {
+        SYS.Console.Print("FAILURE: Hardware config signature mismatch!")
+    }
+}
+
+SYS.MMU.FreePages(SigPtr)
+RETURN Valid
+
+}
+
+#EXPORT FUNCTION Check_Signature

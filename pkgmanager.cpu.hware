@@ -1,0 +1,34 @@
+// ====================================================================
+// NudleOS Lcode Script: RTC.lc (Real-Time Clock)
+// Purpose: Writes the current in-memory hardware map back to disk.
+// Relies on: dll_strap.FS (File System)
+// ====================================================================
+
+#IMPORT "dll_strap" AS SYS
+
+#DEFINE HW_PATH "sys/mboard.hware"
+#DEFINE HW_SIZE 256
+
+// Function to save the configuration from a given memory address
+FUNCTION Save_HWARE(ConfigPtr AS DWORD) {
+// Check for null pointer before writing
+IF (ConfigPtr == 0) {
+SYS.Console.Print("ERROR: Null pointer provided for saving.")
+RETURN 0
+}
+
+// Write the raw memory block back to the file, overwriting the old content
+VAR WriteResult = SYS.FS.WriteFile(HW_PATH, ConfigPtr, HW_SIZE, #FLAG_OVERWRITE)
+
+// Verify write operation success
+IF (WriteResult != HW_SIZE) {
+    SYS.Console.Print("ERROR: File write failed or size mismatch.")
+    RETURN -1
+}
+
+SYS.Console.Print("INFO: Hardware configuration saved successfully.")
+RETURN 1
+
+}
+
+#EXPORT FUNCTION Save_HWARE

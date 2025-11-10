@@ -1,0 +1,53 @@
+// ====================================================================
+// NudleOS Lcode Script: HDC.lc (Hard Disk Controller)
+// Purpose: Loads the entire 'mboard.hware' data file into memory.
+// Relies on: dll_strap.FS (File System) and dll_strap.MMU (Memory Mapping)
+// ====================================================================
+
+// Declare the external system modules required
+#IMPORT "dll_strap" AS SYS
+
+// Define the static target file path
+#DEFINE HW_PATH "sys/mboard.hware"
+#DEFINE HW_SIZE 256 // Assume 256 bytes for fixed structure size
+
+// Structure map for 'mboard.hware' (matching Assembly structure)
+#STRUCT HW_CONFIG {
+DWORD Signature
+DWORD Version
+DWORD DevCount
+DWORD DevListPtr
+BYTE Data[240] // Remaining data block
+}
+
+// Function to load and map the configuration
+FUNCTION Load_HWARE() {
+// Allocate space in the user-space heap for the structure
+VAR MapPtr = SYS.MMU.AllocPages(HW_SIZE)
+
+// Check if memory allocation failed
+IF (MapPtr == 0) {
+    SYS.Console.Print("ERROR: Cannot allocate memory for hardware map.")
+    RETURN -1 // Return error code
+}
+
+// Read the file content directly into the allocated memory block
+VAR ReadResult = SYS.FS.ReadFile(HW_PATH, MapPtr, HW_SIZE)
+
+// Verify read operation success
+IF (ReadResult != HW_SIZE) {
+    SYS.Console.Print("ERROR: File read failed or size mismatch.")
+    SYS.MMU.FreePages(MapPtr)
+    RETURN -2
+}
+
+// Cast the raw memory block to the defined configuration structure
+VAR HWARE_Map = MapPtr AS HW_CONFIG*
+
+// Return the pointer to the loaded structure
+RETURN HWARE_Map
+
+}
+
+// Set the global entry point
+#EXPORT FUNCTION Load_HWARE

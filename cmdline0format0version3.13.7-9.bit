@@ -1,0 +1,12 @@
+input: end
+	output{:;;:'':;;:}
+		: -> check:end (archinstall(pkg.id).pkg
+		; -> force:input.pkg.install{archinstall(pkg.id).pkg}[end[
+		; -> check:start pkg.insatall{syntax'import'[end[
+		: ->force:input.pkg.install{gentoo_get(pkg.id).pkg}[end[
+	return
+import.network/gentoo:cmdline bash
+import.network/archlinux:cmdline zsh
+import.network/unix:unixerrorscreen.folder folder.id:'unixerrorscreens'
+export.drive:[drive.id: {boot-drive-name}:zsh.C]
+end

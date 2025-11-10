@@ -1,0 +1,83 @@
+// LCODE v1.2: @sysbit_boot.btloader.bool.lc
+// Purpose: Critical boot integrity check and dynamic module activation.
+// This script relies on the minimal C-kernel lcode execution environment provided by the
+// partially loaded dll_strap kernel file and must be compiled LIVE at boot.
+
+// =====================================================================
+// 1. IMPORT KERNEL INTERFACE LIBRARY (Must be pre-compiled C-kernel function pointers)
+// =====================================================================
+
+$KERNEL_BINDING_SPEC
+    DEFINE_PTR KERNEL_SERVICE_QUERY = 0x80000004; // Pointer to C-kernel system variable accessor
+    DEFINE_ENUM BOOT_MODE_GUI = 0xAA;
+    DEFINE_ENUM BOOT_MODE_CLI = 0x55;
+    DEFINE_ENUM BOOT_MODE_SAFE = 0xFF;
+$END_BINDING
+
+// =====================================================================
+// 2. DEFINE SYSTEM BIT FLAGS (Initial State Registers)
+// =====================================================================
+
+GLOBAL_VAR @sys.config.primary_load_dll : STRING_PTR = "dll_strap"; // Always load first
+GLOBAL_VAR @sys.state.boot_mode_id      : U32_HINT     = 0;
+GLOBAL_VAR @sys.state.integrity_check   : BOOLEAN_HINT = FALSE;
+
+// =====================================================================
+// 3. CORE INTEGRITY CHECK FUNCTION
+// =====================================================================
+
+FUNCTION Check_Boot_Integrity(
+    ARG Ptr(U32) boot_sector_checksum,
+    ARG U32 boot_flags
+) RETURNS BOOLEAN_HINT
+{
+    // Check 1: Verify the boot checksum against a known value (0xDEADBEEF)
+    IF *boot_sector_checksum == 0xDEADBEEF {
+        // Log to C-Kernel Console via a predefined kernel call
+        CALL KERNEL_SERVICE_QUERY ( "LOG", "Integrity Check Pass 1: Boot Sector Verified." );
+        
+        // Check 2: Determine desired mode from boot flags
+        IF (boot_flags BITWISE_AND 0x01) == 0x01 {
+            // High bit set: Requesting GUI/Gaming Mode
+            @sys.state.boot_mode_id = BOOT_MODE_GUI;
+            @sys.config.primary_load_dll = "dll_gui"; // Switch to GUI loader
+            
+            CALL KERNEL_SERVICE_QUERY ( "SET_FLAG", "INIT_MODE_GRAPHICS" );
+        } ELSE {
+            // Low bit set/Default: Requesting CLI/Pen Testing Mode
+            @sys.state.boot_mode_id = BOOT_MODE_CLI;
+            @sys.config.primary_load_dll = "dll_user"; // Switch to CLI/User loader
+
+            CALL KERNEL_SERVICE_QUERY ( "SET_FLAG", "INIT_MODE_CONSOLE" );
+        }
+        
+        @sys.state.integrity_check = TRUE;
+    } ELSE {
+        // Critical Failure: Load Safe Mode
+        @sys.state.boot_mode_id = BOOT_MODE_SAFE;
+        @sys.config.primary_load_dll = "dll_safe"; // Placeholder safe mode DLL
+        
+        CALL KERNEL_SERVICE_QUERY ( "PANIC", "CRITICAL: Boot Checksum Mismatch. Loading Safe Mode." );
+        
+        @sys.state.integrity_check = FALSE;
+    }
+
+    RETURN @sys.state.integrity_check;
+}
+
+// =====================================================================
+// 4. ENTRY POINT EXECUTION BLOCK
+// * This block is live-compiled and executed by the C-Kernel host.
+// =====================================================================
+
+EXECUTE_BLOCK (Check_Boot_Integrity) {
+    // Note: The C-kernel passes these values upon execution.
+    // Assuming 0x1A2B is a hardcoded boot-time flag provided by NBoot.
+    
+    // Result is stored internally, the C-Kernel will now read
+    // @sys.config.primary_load_dll to fetch the next component.
+    CALL Check_Boot_Integrity ( 0xDEADBEEF, 0x1A2B );
+    
+    // Notify the live compiler that execution is complete and resources can be flushed.
+    CALL KERNEL_SERVICE_QUERY ( "LCODE_COMPILER", "FLUSH_CACHE" );
+}

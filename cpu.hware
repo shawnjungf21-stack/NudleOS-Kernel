@@ -1,0 +1,39 @@
+// ====================================================================
+// NudleOS Lcode Script: PCI.lc (PCI)
+// Purpose: Iterates through all detected devices and lists them.
+// Relies on: HDC.lc
+// ====================================================================
+
+#IMPORT "dll_strap" AS SYS
+#IMPORT "HDC.lc" AS HDC_MODULE
+
+#STRUCT HW_DEVICE {
+DWORD ID
+DWORD Status
+}
+
+FUNCTION List_All_Devices() {
+VAR ConfigPtr = HDC_MODULE.Load_HWARE()
+if (ConfigPtr < 0) { RETURN }
+
+VAR HWARE_Map = ConfigPtr AS HW_CONFIG*
+VAR DevCount = HWARE_Map.DevCount
+VAR DevPtr = HWARE_Map.DevListPtr
+
+SYS.Console.PrintF("--- PCI Bus (Total Devices: %d) ---\n", DevCount)
+
+FOR (VAR i = 0; i < DevCount; i = i + 1) {
+    VAR CurrentDev = DevPtr AS HW_DEVICE*
+    
+    // Use Format String to display the ID and Status
+    SYS.Console.PrintF("  [%d] ID: 0x%X | Status/Addr: 0x%X\n", i, CurrentDev.ID, CurrentDev.Status)
+
+    DevPtr = DevPtr + 8
+}
+SYS.Console.Print("-----------------------------------\n")
+
+SYS.MMU.FreePages(ConfigPtr)
+
+}
+
+#EXPORT FUNCTION List_All_Devices

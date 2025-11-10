@@ -1,0 +1,63 @@
+// NUDLEOS SYSTEM BIT DEFINITION V1.2
+// File: bit.64_x86
+// Purpose: Hardware feature detection and configuration for 64-bit capable hosts.
+// This data is parsed by the 32-bit C-Kernel (NudleOS) to enable or disable
+// specific optimized kernel paths and lcode runtime features.
+
+// =================================================================
+// 1. ARCHITECTURE BLOCK
+// =================================================================
+
+[ARCH_BLOCK_START: X86_FEATURES]
+    // CPU Vendor (0x1 = Intel, 0x2 = AMD, 0x0 = Unknown)
+    CPU_VENDOR_ID  = 0x01;
+
+    // Highest supported CPUID leaf
+    MAX_CPUID_LEAF = 0x80000008;
+
+[ARCH_BLOCK_END: X86_FEATURES]
+
+// =================================================================
+// 2. 64-BIT SUPPORT FLAGS (Used by 32-bit kernel)
+// =================================================================
+
+[FLAG_BLOCK_START: CORE_FLAGS]
+    // Flag 1: Long Mode Support (Necessary for future 64-bit kernel transition)
+    LM_SUPPORTED          : BOOLEAN = TRUE;
+
+    // Flag 2: NX (No-Execute) Bit Support
+    NX_SUPPORTED          : BOOLEAN = TRUE; // CRITICAL for lcode security/pentesting
+
+    // Flag 3: SMEP (Supervisor Mode Execute Prevention) Support
+    SMEP_SUPPORTED        : BOOLEAN = FALSE; // Check if advanced hardware security is available
+
+    // Flag 4: Hypervisor Presence (Is this running in a VM?)
+    HV_PRESENT            : BOOLEAN = TRUE; // Helps kernel make virtualization-aware decisions
+
+[FLAG_BLOCK_END: CORE_FLAGS]
+
+// =================================================================
+// 3. EXTENDED REGISTER CONFIGURATION (Optimization hints for lcode)
+// =================================================================
+
+[REGISTER_BLOCK_START: EXT_REGISTERS]
+    // Availability of YMM/ZMM registers (AVX/AVX-512) for high-performance gaming math
+    AVX_REGISTER_SUPPORT  : BOOLEAN = TRUE;
+
+    // Number of accessible general-purpose 64-bit registers (R8-R15)
+    GPR_64_COUNT          : U8      = 8;
+
+[REGISTER_BLOCK_END: EXT_REGISTERS]
+
+// =================================================================
+// 4. MEMORY EXTENSIONS
+// =================================================================
+
+[MEM_BLOCK_START: PHYSICAL_MEMORY]
+    // The maximum physical address width supported by the CPU
+    PHY_ADDR_WIDTH        : U8      = 40; // Example: 40 bits = 1TB physical memory limit
+    
+    // The maximum virtual address width supported by the CPU
+    VIRT_ADDR_WIDTH       : U8      = 48;
+
+[MEM_BLOCK_END: PHYSICAL_MEMORY]

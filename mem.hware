@@ -1,0 +1,50 @@
+// ====================================================================
+// NudleOS Lcode Script: PS2.lc (PS/2)
+// Purpose: Reads the detection status of the PS/2 Keyboard (ID 0x01).
+// Relies on: hware_load_full.lc (HDC.lc)
+// ====================================================================
+
+#IMPORT "dll_strap" AS SYS
+#IMPORT "HDC.lc" AS HDC_MODULE // Import the loader script
+
+#DEFINE DEVICE_ID_PS2_KB 0x01
+
+// Structure map for a single 8-byte device entry
+#STRUCT HW_DEVICE {
+DWORD ID
+DWORD Status
+}
+
+FUNCTION Get_PS2_Status() {
+VAR ConfigPtr = HDC_MODULE.Load_HWARE()
+
+// Check if load failed
+IF (ConfigPtr < 0) {
+    RETURN -1
+}
+
+VAR HWARE_Map = ConfigPtr AS HW_CONFIG*
+VAR DevCount = HWARE_Map.DevCount
+
+// Find the device entry
+VAR DevPtr = HWARE_Map.DevListPtr // This points to the start of the device array
+
+FOR (VAR i = 0; i < DevCount; i = i + 1) {
+    VAR CurrentDev = DevPtr AS HW_DEVICE*
+
+    IF (CurrentDev.ID == DEVICE_ID_PS2_KB) {
+        SYS.MMU.FreePages(ConfigPtr) // Clean up memory
+        SYS.Console.PrintF("PS/2 Keyboard Status: %d\n", CurrentDev.Status)
+        RETURN CurrentDev.Status
+    }
+
+    // Move to the next 8-byte device entry
+    DevPtr = DevPtr + 8
+}
+
+SYS.MMU.FreePages(ConfigPtr)
+RETURN 0 // Device not found
+
+}
+
+#EXPORT FUNCTION Get_PS2_Status
